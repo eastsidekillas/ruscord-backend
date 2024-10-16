@@ -13,10 +13,9 @@ SECRET_KEY = 'django-insecure-@_ull3*i846w3g-v!b3yjb*bv1rbary544s)_##g)6plbwtos8
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-CSRF_TRUSTED_ORIGINS = ['http://localhost:4200']
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:4200",  # Ваш фронтенд
+    "http://localhost:4200",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -38,14 +37,8 @@ CORS_ALLOW_METHODS = [
     'OPTIONS',
 ]
 
-SESSION_COOKIE_SAMESITE = 'None'
-CSRF_COOKIE_SAMESITE = 'None'
-
-
 
 ALLOWED_HOSTS = []
-
-# Application definition
 
 INSTALLED_APPS = [
     'django.contrib.admin',

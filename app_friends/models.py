@@ -18,7 +18,7 @@ class DirectMessage(models.Model):
 class Friendship(models.Model):
     requester = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='friend_requests_sent')
     receiver = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='friend_requests_received')
-    status = models.CharField(max_length=20, choices=(('pending', 'Pending'), ('accepted', 'Accepted')))
+    status = models.CharField(max_length=20, choices=(('pending', 'Pending'), ('accepted', 'Accepted'), ('denied', 'Denied')))
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
