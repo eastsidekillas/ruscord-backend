@@ -8,11 +8,6 @@ from .models import CustomUser
 from .serializers import UserSerializer
 
 
-@ensure_csrf_cookie
-def csrf(request):
-    return JsonResponse({'csrfToken': request.META.get('CSRF_COOKIE', '')})
-
-
 class UserViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
     serializer_class = UserSerializer
