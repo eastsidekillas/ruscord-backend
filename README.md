@@ -1,9 +1,8 @@
 # Ruscord - Discord Clone (BE)
 
-## Запуск
+## Запуск без Docker
 ```shell
-pip install -r .\req.txt
-py manage.py migrate
-py manage.py createsuperuser
-py manage.py runserver
+poetry install
+poetry run python -m manage createsuperuser
+poetry run python -m manage runserver
 ```
