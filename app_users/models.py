@@ -24,11 +24,12 @@ class CustomUserManager(BaseUserManager):
 
 # Модель пользователя
 class CustomUser(AbstractBaseUser, PermissionsMixin):
-    username = models.CharField(max_length=255, unique=True)
-    email = models.EmailField(unique=True)
-    phone = models.CharField(max_length=11, null=True, blank=True)
-    avatar_url = models.URLField(null=True, blank=True)
-    bio = models.TextField(blank=True, null=True)  # Краткая информация о пользователе
+    username = models.CharField(max_length=255, unique=True, verbose_name=('Имя пользователя'))
+    email = models.EmailField(unique=True, verbose_name=('Email'))
+    phone = models.CharField(max_length=11, null=True, blank=True, verbose_name=('Номер телефона'))
+    avatar = models.ImageField(upload_to='avatars/users/', null=True, blank=True, verbose_name=('Аватар'))
+    bio = models.TextField(blank=True, null=True, verbose_name=('Обо мне'))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=('Дата регистрации'))
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
@@ -44,12 +45,12 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     def has_perm(self, perm, obj=None):
         """Returns True if the user has the specified permission."""
-        return True  # Ваша логика разрешений
+        return True
 
     def has_module_perms(self, app_label):
         """Returns True if the user has permissions for the specified app label."""
-        return True  # Ваша логика разрешений
+        return True
 
     def get_group_permissions(self, obj=None):
         """Returns a set of permissions for groups the user belongs to."""
-        return set()  # Ваша логика разрешений
+        return set()
