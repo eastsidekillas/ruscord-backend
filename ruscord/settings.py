@@ -49,10 +49,14 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'rest_framework',
+    'channels',
     'rest_framework_simplejwt',
-    'app_users',
     'app_friends',
+    'app_users',
+
 ]
+
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -83,7 +87,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'ruscord.wsgi.application'
-ASGI_APPLICATION = 'ruscord.asgi.application'
+
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
@@ -141,10 +145,12 @@ REST_FRAMEWORK = {
     ),
 }
 
-# Добавьте эту строку в конец файла
 CHANNEL_LAYERS = {
     'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
     },
 }
 
@@ -153,6 +159,8 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
 }
+
+ASGI_APPLICATION = 'ruscord.asgi.application'
 
 AUTH_USER_MODEL = 'app_users.CustomUser'
 
