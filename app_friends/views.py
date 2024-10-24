@@ -80,8 +80,12 @@ class DirectMessageViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def send_message(self, request):
         """Отправка личного сообщения"""
-        serializer = DirectMessageCreateSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save(sender=request.user)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        if request.user.is_authenticated:
+            serializer = DirectMessageCreateSerializer(data=request.data)
+            if serializer.is_valid():
+                # Присваиваем отправителя
+                serializer.validated_data['sender'] = request.user
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"detail": "Аутентификация обязательна."}, status=status.HTTP_403_FORBIDDEN)
