@@ -16,8 +16,7 @@ poetry run daphne -p 8000 ruscord.asgi:application
 
 
 ## Для работы вебсокетов потребуется Redis
-### Ставим Docker Desktop и разворачиваем контейнер
-
+### Ставим Docker Desktop и разворачиваем контейнер :)
 
 https://docs.docker.com/desktop/install/windows-install/
 
