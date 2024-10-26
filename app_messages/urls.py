@@ -1,9 +1,9 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import FriendViewSet
+from .views import MessageViewSet
 
 router = DefaultRouter()
-router.register(r'friends', FriendViewSet, basename='friends')
+router.register(r'messages', MessageViewSet, basename='message')
 
 urlpatterns = [
     path('', include(router.urls)),

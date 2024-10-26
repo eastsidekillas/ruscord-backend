@@ -13,9 +13,9 @@ SECRET_KEY = 'django-insecure-@_ull3*i846w3g-v!b3yjb*bv1rbary544s)_##g)6plbwtos8
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:4200",
+    "http://localhost:3000"
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -37,7 +37,6 @@ CORS_ALLOW_METHODS = [
     'OPTIONS',
 ]
 
-
 ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
@@ -53,10 +52,9 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'app_friends',
     'app_users',
+    'app_messages'
 
 ]
-
-
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -87,7 +85,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'ruscord.wsgi.application'
-
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
@@ -138,22 +135,21 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
 }
 
+# settings.py
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [('127.0.0.1', 6379)],
+            "hosts": [('127.0.0.1', 6379)],  # Update to your Redis server configuration
         },
     },
 }
-
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
@@ -163,4 +159,3 @@ SIMPLE_JWT = {
 ASGI_APPLICATION = 'ruscord.asgi.application'
 
 AUTH_USER_MODEL = 'app_users.CustomUser'
-

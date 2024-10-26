@@ -1,91 +1,78 @@
 from rest_framework import viewsets, status
-from django.db import models
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
 from rest_framework.decorators import action
-from .models import Friendship, DirectMessage
-from .serializers import (
-    FriendshipSerializer,
-    FriendshipRequestSerializer,
-    FriendshipUpdateSerializer,
-    DirectMessageSerializer,
-    DirectMessageCreateSerializer
-)
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from .models import Friend, FriendRequest
+from app_users.models import CustomUser
+from .serializers import UserSerializer, FriendRequestSerializer, FriendSerializer
 
 
-class FriendshipViewSet(viewsets.ModelViewSet):
-    queryset = Friendship.objects.all()
-    serializer_class = FriendshipSerializer
+# Вьюсет для работы с пользователями и заявками в друзья
+class FriendViewSet(viewsets.ModelViewSet):
+    queryset = Friend.objects.all()
+    serializer_class = FriendSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        # Показываем только заявки, которые связаны с текущим пользователем
-        user = self.request.user
-        return Friendship.objects.filter(requester=user) | Friendship.objects.filter(receiver=user)
+    @action(detail=True, methods=['post'])
+    def send_request(self, request, pk=None):
+        """Отправить заявку в друзья"""
+        to_user = CustomUser.objects.get(pk=pk)
 
-    @action(detail=False, methods=['post'])
-    def send_request(self, request):
-        """Отправка запроса в друзья"""
-        serializer = FriendshipRequestSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save(requester=request.user)
+        if request.user.id == to_user.id:
+            return Response({"detail": "Нельзя добавить себя в друзья."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if FriendRequest.objects.filter(from_user=request.user, to_user=to_user).exists():
+            return Response({"detail": "Заявка уже отправлена"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            friend_request = FriendRequest.objects.create(from_user=request.user, to_user=to_user)
+            serializer = FriendRequestSerializer(friend_request)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(detail=True, methods=['patch'])
-    def update_status(self, request, pk=None):
-        """Обновление статуса заявки (принять/отклонить)"""
-        friendship = self.get_object()
-        if friendship.receiver != request.user:
-            return Response({'detail': 'Недостаточно прав.'}, status=status.HTTP_403_FORBIDDEN)
-        serializer = FriendshipUpdateSerializer(friendship, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    @action(detail=True, methods=['post'])
+    def accept_request(self, request, pk=None):
+        """Принять заявку в друзья"""
+        friend_request = FriendRequest.objects.filter(to_user=request.user, from_user_id=pk, status='pending').first()
+        if not friend_request:
+            return Response({"detail": "Заявка не найдена"}, status=status.HTTP_404_NOT_FOUND)
 
-    @action(detail=False, methods=['get'])
-    def pending_requests(self, request):
-        """Просмотр ожидающих запросов в друзья"""
-        pending = Friendship.objects.filter(receiver=request.user, status='pending')
-        serializer = self.get_serializer(pending, many=True)
-        return Response(serializer.data)
+        friend_request.status = 'accepted'
+        friend_request.save()
 
-    @action(detail=False, methods=['get'])
-    def friends(self, request):
-        """Получение списка друзей"""
-        friends = Friendship.objects.filter(
-            (models.Q(requester=request.user) | models.Q(receiver=request.user)) & models.Q(status='accepted')
-        )
-        serializer = self.get_serializer(friends, many=True)
-        return Response(serializer.data)
+        # Создаем связь друзей
+        Friend.objects.create(sender=friend_request.from_user, receiver=friend_request.to_user)
+        serializer = FriendSerializer(
+            Friend.objects.filter(sender=friend_request.from_user, receiver=friend_request.to_user).first())
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    @action(detail=True, methods=['post'])
+    def reject_request(self, request, pk=None):
+        """Отклонить заявку в друзья"""
+        friend_request = FriendRequest.objects.filter(to_user=request.user, from_user_id=pk, status='pending').first()
+        if not friend_request:
+            return Response({"detail": "Заявка не найдена"}, status=status.HTTP_404_NOT_FOUND)
 
-class DirectMessageViewSet(viewsets.ModelViewSet):
-    queryset = DirectMessage.objects.all()
-    serializer_class = DirectMessageSerializer
-    permission_classes = [IsAuthenticated]
+        friend_request.status = 'rejected'
+        friend_request.save()
+        serializer = FriendRequestSerializer(friend_request)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def get_queryset(self):
-        """Возвращает только сообщения между текущим пользователем и другим пользователем."""
-        user = self.request.user
-        receiver_id = self.request.query_params.get('receiver')
-        if receiver_id:
-            return DirectMessage.objects.filter(
-                (models.Q(sender=user, receiver_id=receiver_id) |
-                 models.Q(sender_id=receiver_id, receiver=user))
-            ).order_by('-created_at')
-        return DirectMessage.objects.none()
+    @action(detail=True, methods=['post'])
+    def remove_friend(self, request, pk=None):
+        """Удалить друга"""
+        friend = Friend.objects.filter(
+            models.Q(sender=request.user, receiver_id=pk) | models.Q(sender_id=pk, receiver=request.user)
+        ).first()
+        if not friend:
+            return Response({"detail": "Друг не найден"}, status=status.HTTP_404_NOT_FOUND)
 
-    @action(detail=False, methods=['post'])
-    def send_message(self, request):
-        """Отправка личного сообщения"""
-        if request.user.is_authenticated:
-            serializer = DirectMessageCreateSerializer(data=request.data)
-            if serializer.is_valid():
-                # Присваиваем отправителя
-                serializer.validated_data['sender'] = request.user
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        return Response({"detail": "Аутентификация обязательна."}, status=status.HTTP_403_FORBIDDEN)
+        friend.delete()
+        return Response({"detail": "Друг удален"}, status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False, methods=['get'], url_path='my_friends')
+    def my_friends(self, request):
+        friends = Friend.objects.filter(sender=request.user).values('receiver__username')
+        return Response(friends)
+
