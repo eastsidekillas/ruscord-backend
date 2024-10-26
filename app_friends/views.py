@@ -21,7 +21,12 @@ class FriendViewSet(viewsets.ModelViewSet):
         if request.user.id == to_user.id:
             return Response({"detail": "Нельзя добавить себя в друзья."}, status=status.HTTP_400_BAD_REQUEST)
 
-        if FriendRequest.objects.filter(from_user=request.user, to_user=to_user).exists():
+        if FriendRequest.objects.filter(
+            from_user=request.user,
+            to_user=to_user
+        ).exists() or FriendRequest.objects.filter(
+            from_user=to_user, to_user=request.user
+        ).exist():
             return Response({"detail": "Заявка уже отправлена"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
@@ -75,4 +80,3 @@ class FriendViewSet(viewsets.ModelViewSet):
     def my_friends(self, request):
         friends = Friend.objects.filter(sender=request.user).values('receiver__username')
         return Response(friends)
-
