@@ -16,6 +16,7 @@ channels = "^4.1.0"
 channels-redis = "^4.2.0"
 aiortc = "^1.9.0"
 daphne = "^4.1.2"
+python-socketio = "^5.11.4"
 
 
 [build-system]
