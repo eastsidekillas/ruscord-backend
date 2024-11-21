@@ -1,22 +1,30 @@
 from pathlib import Path
+import os
+from dotenv import load_dotenv
 from datetime import timedelta
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+load_dotenv()
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-@_ull3*i846w3g-v!b3yjb*bv1rbary544s)_##g)6plbwtos8'
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG')
+
+ALLOWED_HOSTS = ['http://localhost:4200', 'localhost', 'localhost:8000', '127.0.0.1', 'http://localhost:8000']
+if os.getenv('PUBLIC_HOST'):
+    ALLOWED_HOSTS.append(os.environ['PUBLIC_HOST'])
+    CSRF_TRUSTED_ORIGINS = [f'https://{os.environ["PUBLIC_HOST"]}', 'http://localhost:8000']
+
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:4200",
-    "http://localhost:3000"
+    'http://localhost:4200',
 ]
+
+ASGI_APPLICATION = 'ruscord.asgi.application'
+
+AUTH_USER_MODEL = 'app_users.CustomUser'
 
 CORS_ALLOW_CREDENTIALS = True
 
@@ -37,7 +45,6 @@ CORS_ALLOW_METHODS = [
     'OPTIONS',
 ]
 
-ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -52,9 +59,30 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'app_friends',
     'app_users',
-    'app_messages'
+    'app_messages',
+    'app_channels'
 
 ]
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=30),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=60),
+}
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+}
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -91,10 +119,15 @@ WSGI_APPLICATION = 'ruscord.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': os.getenv('DATABASE_ENGINE') or 'django.db.backends.sqlite3',
+        'NAME':  os.getenv('DATABASE_NAME') or BASE_DIR / 'db.sqlite3',
+        'USER':  os.getenv('DATABASE_USER'),
+        'PASSWORD':  os.getenv('DATABASE_PASSWORD'),
+        'HOST':  os.getenv('DATABASE_HOST'),
+        'PORT':  os.getenv('DATABASE_PORT'),
     }
 }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -128,34 +161,19 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
+
 STATIC_URL = 'static/'
+STATIC_ROOT = os.getenv('STATIC_ROOT')
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
-}
 
-# settings.py
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            "hosts": [('127.0.0.1', 6379)],  # Update to your Redis server configuration
-        },
-    },
-}
+MEDIA_ROOT = os.getenv('MEDIA_ROOT', 'media')
+MEDIA_URL = os.getenv('MEDIA_URL', 'media/')
 
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-}
 
-ASGI_APPLICATION = 'ruscord.asgi.application'
 
-AUTH_USER_MODEL = 'app_users.CustomUser'
