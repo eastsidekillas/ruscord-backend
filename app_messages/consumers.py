@@ -6,10 +6,10 @@ from channels.db import database_sync_to_async
 
 
 def get_channel_by_uuid(uuid):
-    from app_channels.models import DirectMessageChannel
+    from app_channels.models import Channel
     try:
-        return DirectMessageChannel.objects.get(uuid=uuid)
-    except DirectMessageChannel.DoesNotExist:
+        return Channel.objects.get(uuid=uuid)
+    except Channel.DoesNotExist:
         return None
 
 
@@ -32,13 +32,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
     async def receive(self, text_data):
-        from app_users.models import CustomUser
         text_data_json = json.loads(text_data)
         message = text_data_json['message']
-        sender_uuid = str(self.scope['user'].id)  # UUID текущего пользователя
-        recipient_uuid = text_data_json['recipient']
+        sender_uuid = text_data_json['sender']  # Получаем sender UUID
+        recipient_uuid = text_data_json['recipient']  # Получаем recipient UUID
 
-        # Проверка корректности UUID
+        # Проверка существования пользователя
+        from app_users.models import CustomUser
         try:
             sender = await database_sync_to_async(CustomUser.objects.get)(id=UUID(sender_uuid))
             recipient = await database_sync_to_async(CustomUser.objects.get)(id=UUID(recipient_uuid))
@@ -47,14 +47,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return
 
         from .models import Message
-        # Сохранение сообщения в базе данных
+        # Сохраняем сообщение и отправляем его в группу
         await database_sync_to_async(Message.objects.create)(
             sender=sender,
             recipient=recipient,
             text=message,
         )
 
-        # Отправляем сообщение в группу
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -63,6 +62,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'sender': sender.id,
                 'sender_username': sender.username,
                 'recipient': recipient.id,
+                'recipient_username': recipient.username,
             },
         )
 
@@ -70,7 +70,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         # Отправляем сообщение клиенту
         await self.send(text_data=json.dumps({
             'message': event['message'],
-            'sender': event['sender'],
+            'sender': str(event['sender']),  # Преобразуем UUID в строку
+            'recipient': str(event['recipient']),  # Преобразуем UUID в строку
             'sender_username': event['sender_username'],
-            'recipient': event['recipient'],
         }))

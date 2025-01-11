@@ -2,8 +2,8 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import DirectMessageChannel
-from .serializers import DirectMessageChannelSerializer
+from .models import Channel
+from .serializers import ChannelSerializer
 from app_users.models import CustomUser
 
 
@@ -24,19 +24,32 @@ class DirectMessageChannelViewSet(viewsets.ViewSet):
             return Response({"detail": "Пользователь не найден"}, status=status.HTTP_404_NOT_FOUND)
 
         # Ищем существующий канал
-        channel = DirectMessageChannel.objects.filter(members=user).filter(members=recipient).first()
+        channel = Channel.objects.filter(members=user).filter(members=recipient).first()
 
         # Если канал не найден, создаем новый
         if not channel:
-            channel = DirectMessageChannel.objects.create()
+            channel = Channel.objects.create()
             channel.members.add(user, recipient)
 
-        serializer = DirectMessageChannelSerializer(channel)
+        serializer = ChannelSerializer(channel)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['get'])
     def my_channels(self, request):
         """Получить все чаты текущего пользователя"""
-        channels = DirectMessageChannel.objects.filter(members=request.user)
-        serializer = DirectMessageChannelSerializer(channels, many=True)
+        channels = Channel.objects.filter(members=request.user)
+        serializer = ChannelSerializer(channels, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['get'])
+    def channel_info(self, request, pk=None):
+        """Получить информацию о канале по UUID"""
+        try:
+            # Находим канал по UUID
+            channel = Channel.objects.get(uuid=pk)
+        except Channel.DoesNotExist:
+            return Response({"detail": "Канал не найден"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Сериализуем канал
+        serializer = ChannelSerializer(channel)
         return Response(serializer.data, status=status.HTTP_200_OK)
