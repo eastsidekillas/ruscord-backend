@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import (AbstractBaseUser, BaseUserManager, PermissionsMixin)
 import uuid
 
+
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, username, password=None, **extra_fields):
         if not email:

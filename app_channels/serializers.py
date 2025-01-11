@@ -1,11 +1,11 @@
 from rest_framework import serializers
-from .models import DirectMessageChannel
+from .models import Channel
 from app_users.serializers import UserSerializer
 
 
-class DirectMessageChannelSerializer(serializers.ModelSerializer):
+class ChannelSerializer(serializers.ModelSerializer):
     members = UserSerializer(many=True, read_only=True)
 
     class Meta:
-        model = DirectMessageChannel
+        model = Channel
         fields = ['uuid', 'members', 'created_at']
