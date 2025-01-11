@@ -22,11 +22,11 @@ class FriendViewSet(viewsets.ModelViewSet):
             return Response({"detail": "Нельзя добавить себя в друзья."}, status=status.HTTP_400_BAD_REQUEST)
 
         if FriendRequest.objects.filter(
-            from_user=request.user,
-            to_user=to_user
+                from_user=request.user,
+                to_user=to_user
         ).exists() or FriendRequest.objects.filter(
             from_user=to_user, to_user=request.user
-        ).exist():
+        ).exists():
             return Response({"detail": "Заявка уже отправлена"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
