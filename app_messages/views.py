@@ -1,3 +1,4 @@
+from django.db import models
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -29,3 +30,20 @@ class MessageViewSet(viewsets.ModelViewSet):
         message.is_read = True
         message.save()
         return Response({"detail": "Сообщение отмечено как прочитанное"}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='history')
+    def get_message_history(self, request):
+        sender_id = request.query_params.get('sender')
+        recipient_id = request.query_params.get('recipient')
+
+        if not sender_id or not recipient_id:
+            return Response({"detail": "sender и recipient обязательно"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Фильтрация сообщений между отправителем и получателем
+        messages = Message.objects.filter(
+            (models.Q(sender_id=sender_id, recipient_id=recipient_id) |
+             models.Q(sender_id=recipient_id, recipient_id=sender_id))
+        ).order_by('timestamp')
+
+        serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data)
