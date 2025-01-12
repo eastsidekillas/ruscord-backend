@@ -1,5 +1,17 @@
 # Ruscord - Discord Clone (BE)
 
+## Установка Poetry Windows
+
+Ставим этой командой poetry:
+```shell
+(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
+```
+Делаем переменную в системе так:
+
+```shell
+C:\Users\ИМЯ ПОЛЬЗОВАТЕЛЯ ПК\AppData\Roaming\Python\Scripts
+```
+
 ## Запуск стартовый  
 ```shell
 poetry install

@@ -8,3 +8,6 @@ router.register(r'friends', FriendViewSet, basename='friends')
 urlpatterns = [
     path('', include(router.urls)),
 ]
+
+urlpatterns = router.urls
+
