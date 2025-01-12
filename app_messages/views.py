@@ -45,5 +45,6 @@ class MessageViewSet(viewsets.ModelViewSet):
              models.Q(sender_id=recipient_id, recipient_id=sender_id))
         ).order_by('timestamp')
 
-        serializer = MessageSerializer(messages, many=True)
+        # Передаем request в контексте при создании сериализатора
+        serializer = MessageSerializer(messages, many=True, context={'request': request})
         return Response(serializer.data)

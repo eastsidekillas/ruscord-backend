@@ -29,7 +29,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=255, unique=True, verbose_name=('Имя пользователя'))
     email = models.EmailField(unique=True, verbose_name=('Email'))
     phone = models.CharField(max_length=11, null=True, blank=True, verbose_name=('Номер телефона'))
-    avatar = models.ImageField(upload_to='media/avatars/users/', null=True, blank=True, verbose_name=('Аватар'))
+    avatar = models.ImageField(upload_to='avatars/users/', null=True, blank=True, verbose_name=('Аватар'))
     bio = models.TextField(blank=True, null=True, verbose_name=('Обо мне'))
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=('Дата регистрации'))
 
