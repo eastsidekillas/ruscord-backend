@@ -9,7 +9,9 @@
 Делаем переменную в системе так:
 
 ```shell
-C:\Users\ИМЯ ПОЛЬЗОВАТЕЛЯ ПК\AppData\Roaming\Python\Scripts
+Имя переменной Path  
+
+Путь: C:\Users\ИМЯ ПОЛЬЗОВАТЕЛЯ ПК\AppData\Roaming\Python\Scripts
 ```
 
 ## Запуск стартовый  
