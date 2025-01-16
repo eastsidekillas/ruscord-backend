@@ -1,0 +1,66 @@
+version: "3.9"
+
+x-common-variables: &common-variables
+  DJANGO_SECRET_KEY:
+  DEBUG:
+  PUBLIC_HOST:
+  DATABASE_ENGINE: django.db.backends.postgresql
+  DATABASE_NAME: ruscord
+  DATABASE_USER: ruscord
+  DATABASE_PASSWORD: ruscord
+  DATABASE_HOST: postgres
+  DATABASE_PORT: 5432
+  STATIC_ROOT: /app/static
+  MEDIA_ROOT: /app/media
+  MEDIA_URL:
+
+services:
+  app:
+    build: .
+    env_file: .env
+    environment: *common-variables
+    volumes:
+      - media:/app/media
+    depends_on:
+      - postgres
+      - migration
+  collectstatic:
+    build: .
+    user: root
+    env_file: .env
+    environment: *common-variables
+    volumes:
+      - static:/app/static
+    command: ["django-admin", "collectstatic", "--no-input"]
+  migration:
+    build: .
+    env_file: .env
+    environment: *common-variables
+    command: ["django-admin", "migrate", "--no-input"]
+    depends_on:
+      - postgres
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ruscord
+      POSTGRES_PASSWORD: ruscord
+      POSTGRES_DB: ruscord
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  frontend:
+    build: ../ruscord-fe
+    volumes:
+      - static:/app/static
+      - media:/app/media
+    ports:
+      - "8000:80"
+    depends_on:
+      - collectstatic
+      - app
+
+volumes:
+  postgres_data:
+  static:
+  media:

@@ -19,7 +19,6 @@ lib64/
 parts/
 sdist/
 var/
-media/
 wheels/
 share/python-wheels/
 *.egg-info/
@@ -155,5 +154,8 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-
+# PyCharm
 .idea/
+
+# Project specific
+/media/
