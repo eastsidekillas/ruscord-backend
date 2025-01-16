@@ -40,10 +40,21 @@ jobs:
 
       - name: Set up SSH keys for Docker registry
         run: |
+          # Создаем директорию для SSH ключей
           mkdir -p ~/.ssh
+          
+          # Добавляем приватный ключ из GitHub secrets
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
+
+          # Выводим права на файл для проверки
+          ls -l ~/.ssh/id_rsa
+
+          # Добавляем публичный ключ хоста в known_hosts для предотвращения SSH предупреждений
           ssh-keyscan -t rsa docker-1.hosting.eastrust.ru >> ~/.ssh/known_hosts
+          
+          # Проверяем, что мы можем подключиться к хосту
+          ssh -T -o StrictHostKeyChecking=no docker-1.hosting.eastrust.ru echo "SSH connection successful"
 
       - name: Pull Docker image from Docker Registry
         run: |
