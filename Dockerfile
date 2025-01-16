@@ -15,7 +15,7 @@ COPY pyproject.toml poetry.lock README.md ./
 RUN poetry install -v --no-interaction --no-ansi --no-root \
     && rm -rf ~/.cache/pypoetry/{cache,artifacts}
 
-COPY ./src ./src
+COPY ./src /app
 RUN poetry install --no-interaction --no-ansi --without=dev
 
 
@@ -32,4 +32,4 @@ ENV MEDIA_ROOT=/app/media
 RUN install -o appuser -g appuser -d $MEDIA_ROOT
 USER appuser
 EXPOSE 8000/tcp
-CMD ["daphne", "-p", "8000", "ruscord.asgi:application"]
+CMD ["daphne", "-p", "8000", "-b", "0.0.0.0", "ruscord.asgi:application"]
