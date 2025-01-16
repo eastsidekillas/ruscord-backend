@@ -19,11 +19,22 @@ jobs:
 
       - name: Log in to Docker Registry (with SSH key)
         run: |
+          # Создаем директорию для SSH ключей
           mkdir -p ~/.ssh
+          
+          # Добавляем приватный ключ из GitHub secrets
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
+          
+          # Проверяем права доступа к ключу
+          ls -l ~/.ssh/id_rsa
+          
+          # Добавляем публичный ключ хоста в known_hosts для предотвращения SSH предупреждений
           ssh-keyscan -t rsa docker-1.hosting.eastrust.ru >> ~/.ssh/known_hosts
-
+          
+          # Проверяем, что мы можем подключиться к хосту
+          ssh -T -o StrictHostKeyChecking=no docker-1.hosting.eastrust.ru echo "SSH connection successful"
+          
       - name: Build and Push Docker image
         run: |
           docker buildx build \
@@ -46,20 +57,20 @@ jobs:
           # Добавляем приватный ключ из GitHub secrets
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-
+          
           # Выводим права на файл для проверки
           ls -l ~/.ssh/id_rsa
-
+          
           # Добавляем публичный ключ хоста в known_hosts для предотвращения SSH предупреждений
           ssh-keyscan -t rsa docker-1.hosting.eastrust.ru >> ~/.ssh/known_hosts
           
           # Проверяем, что мы можем подключиться к хосту
           ssh -T -o StrictHostKeyChecking=no docker-1.hosting.eastrust.ru echo "SSH connection successful"
-
+          
       - name: Pull Docker image from Docker Registry
         run: |
           docker pull docker-1.hosting.eastrust.ru:5000/ruscord/ruscord-backend:latest
-
+          
       - name: Deploy Docker image with Docker Compose
         run: |
           cd /home/ruscord-backend
