@@ -5,30 +5,19 @@ ENV PIP_NO_CACHE_DIR=off
 ENV PIP_DISABLE_PIP_VERSION_CHECK=on
 ENV PIP_DEFAULT_TIMEOUT=200
 
-# Установка Poetry
 RUN python -m venv /opt/poetry
 RUN /opt/poetry/bin/pip install --no-cache-dir poetry==1.8.3
 RUN ln -svT /opt/poetry/bin/poetry /usr/local/bin/poetry
 RUN poetry config virtualenvs.in-project true
 
-# Установка системных зависимостей (если необходимо)
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
 COPY pyproject.toml poetry.lock README.md ./
-
-# Проверка версии Poetry
-RUN poetry --version
-
-# Установка зависимостей
-RUN poetry install -v --no-interaction --no-ansi --no-root --without=dev \
+RUN poetry install --no-interaction --no-ansi --no-root --without=dev \
     && rm -rf ~/.cache/pypoetry/{cache,artifacts}
 
 COPY ./src ./src
 RUN poetry install --no-interaction --no-ansi --without=dev
+
 
 FROM python:3.12-slim AS main
 RUN apt-get update && \
