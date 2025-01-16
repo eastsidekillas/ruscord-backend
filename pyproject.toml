@@ -4,6 +4,7 @@ version = "0.1.0"
 description = ""
 authors = ["Timofey Tsepennikov <tta@biznpro.ru>"]
 readme = "README.md"
+packages = [{include = "*", from="src"}]
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -16,6 +17,7 @@ channels = "^4.1.0"
 channels-redis = "^4.2.0"
 daphne = "^4.1.2"
 python-dotenv = "^1.0.1"
+psycopg2 = "^2.9.10"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.10.1"
