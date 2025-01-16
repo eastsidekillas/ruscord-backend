@@ -12,7 +12,7 @@ RUN poetry config virtualenvs.in-project true
 
 WORKDIR /app
 COPY pyproject.toml poetry.lock README.md ./
-RUN poetry install --no-interaction --no-ansi --no-root --without=dev \
+RUN poetry install -v --no-interaction --no-ansi --no-root \
     && rm -rf ~/.cache/pypoetry/{cache,artifacts}
 
 COPY ./src ./src
