@@ -1,47 +1,55 @@
-name: Backend CI/CD
+name: CI/CD for Ruscord Project
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch: # Позволяет запускать пайплайн вручную
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout репозиторий
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-      # Установка Docker
-      - name: Set up Docker
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      # Логин в Docker Registry
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Сборка Docker-образа
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          tags: eastsidekillas/ruscord-backend:latest
-          push: true
+      - name: Build and Push Docker image
+        run: |
+          docker buildx build \
+            --tag 'eastsidekillas/ruscord-backend:latest' \
+            --platform=linux/amd64 --pull --push .
+  
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
 
-      # Деплой на сервер
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
       - name: Deploy to server
-        uses: appleboy/ssh-action@v0.1.7
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+        run: |
+          echo "$SERVER_SSH_KEY" > private_key.pem
+          chmod 600 private_key.pem
+
+          # Подключаемся к серверу и выполняем команды развертывания
+          ssh -o StrictHostKeyChecking=no -i private_key.pem $SERVER_USER@$SERVER_HOST << 'EOF'
             cd /home/ruscord-backend
             docker-compose pull
-            docker-compose down
+            docker-compose stop
             docker-compose up -d
+          EOF
