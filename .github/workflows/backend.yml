@@ -38,7 +38,7 @@ jobs:
       - name: Build and Push Docker image
         run: |
           docker buildx build \
-            --tag 'docker-1.hosting.eastrust.ru:5000/ruscord/ruscord-backend:latest' \
+            --tag 'docker-1.hosting.eastrust.ru/ruscord/ruscord-backend:latest' \
             --platform=linux/amd64 --push .
 
   deploy:
@@ -69,7 +69,7 @@ jobs:
           
       - name: Pull Docker image from Docker Registry
         run: |
-          docker pull docker-1.hosting.eastrust.ru:5000/ruscord/ruscord-backend:latest
+          docker pull docker-1.hosting.eastrust.ru/ruscord/ruscord-backend:latest
           
       - name: Deploy Docker image with Docker Compose
         run: |
