@@ -37,19 +37,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      # Деплой на сервер
       - name: Deploy to server
-        env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_USER: ${{ secrets.SERVER_USER }}
-          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
-        run: |
-          echo "$SERVER_SSH_KEY" > private_key.pem
-          chmod 600 private_key.pem
-
-          # Подключаемся к серверу и выполняем команды развертывания
-          ssh -o StrictHostKeyChecking=no -i private_key.pem $SERVER_USER@$SERVER_HOST << 'EOF'
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
             cd /home/ruscord-backend
             docker-compose pull
-            docker-compose stop
+            docker-compose down
             docker-compose up -d
-          EOF
