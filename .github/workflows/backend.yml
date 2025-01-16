@@ -30,7 +30,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          tags: your-dockerhub-username/ruscord-backend:latest
+          tags: eastsidekillas/ruscord-backend:latest
           push: true
 
       # Деплой на сервер
@@ -41,7 +41,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            cd /path/to/your/backend/deployment
+            cd /home/ruscord-backend
             docker-compose pull
             docker-compose down
             docker-compose up -d
