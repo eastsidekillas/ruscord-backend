@@ -42,7 +42,7 @@ jobs:
             --platform=linux/amd64 --push .
 
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     needs: build
 
     steps:
