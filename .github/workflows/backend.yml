@@ -26,7 +26,7 @@ jobs:
       - name: Build and Push Docker image
         run: |
           docker buildx build \
-            -f ruscord-backend/Dockerfile \
+            -f Dockerfile \
             --tag 'eastsidekillas/ruscord-backend:latest' \
             --platform=linux/amd64 --pull --push .
   
