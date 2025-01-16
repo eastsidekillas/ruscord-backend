@@ -73,7 +73,6 @@ jobs:
           
       - name: Deploy Docker image with Docker Compose
         run: |
-          cd /home/ruscord-backend
           docker-compose pull
           docker-compose down
           docker-compose up -d
