@@ -1,10 +1,10 @@
-name: CI/CD for Ruscord Project
+name: CI/CD for Docker Registry
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch: # Позволяет запускать пайплайн вручную
+  workflow_dispatch:  # Позволяет запускать пайплайн вручную
 
 jobs:
   build:
@@ -17,13 +17,20 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Log in to Docker Registry (with SSH key)
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -t rsa docker-1.hosting.eastrust.ru >> ~/.ssh/known_hosts
+
       - name: Build and Push Docker image
         run: |
           docker buildx build \
             --tag 'docker-1.hosting.eastrust.ru:5000/ruscord/ruscord-backend:latest' \
             --platform=linux/amd64 --push .
-  
- deploy:
+
+  deploy:
     runs-on: ubuntu-latest
     needs: build
 
@@ -38,12 +45,13 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -t rsa docker-1.hosting.eastrust.ru >> ~/.ssh/known_hosts
 
-      - name: Pull Docker image and Deploy to Server
+      - name: Pull Docker image from Docker Registry
         run: |
-          # Используем SSH для подключения к Docker Registry
           docker pull docker-1.hosting.eastrust.ru:5000/ruscord/ruscord-backend:latest
-          
-            cd /home/ruscord-backend
-            docker-compose pull
-            docker-compose down
-            docker-compose up -d
+
+      - name: Deploy Docker image with Docker Compose
+        run: |
+          cd /home/ruscord-backend
+          docker-compose pull
+          docker-compose down
+          docker-compose up -d
