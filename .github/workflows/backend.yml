@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: [backend]
+    runs-on: [self-hosted, linux]
 
     steps:
       - name: Checkout repository
@@ -42,7 +42,7 @@ jobs:
             --platform=linux/amd64 --push .
 
   deploy:
-    runs-on: [backend]
+    runs-on: [self-hosted, linux]
     needs: build
 
     steps:
