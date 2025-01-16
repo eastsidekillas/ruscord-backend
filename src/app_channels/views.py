@@ -51,5 +51,5 @@ class DirectMessageChannelViewSet(viewsets.ViewSet):
             return Response({"detail": "Канал не найден"}, status=status.HTTP_404_NOT_FOUND)
 
         # Сериализуем канал
-        serializer = ChannelSerializer(channel)
+        serializer = ChannelSerializer(channel, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
