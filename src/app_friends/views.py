@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .models import Friend, FriendRequest
+from django.db import models
 import uuid
 from app_users.models import CustomUser
 from .serializers import UserSerializer, FriendRequestSerializer, FriendSerializer
@@ -94,10 +95,24 @@ class FriendViewSet(viewsets.ModelViewSet):
         friend.delete()
         return Response({"detail": "Друг удален"}, status=status.HTTP_204_NO_CONTENT)
 
+        # Получение списка друзей текущего пользователя
     @action(detail=False, methods=['get'], url_path='my_friends')
     def my_friends(self, request):
-        friends = Friend.objects.filter(sender=request.user).values('receiver__username')
-        return Response(friends)
+        # Находим только тех, кто принял заявку в друзья
+        friends = Friend.objects.filter(
+            models.Q(sender=request.user) | models.Q(receiver=request.user)
+            # Найти всех, кто связан с текущим пользователем
+        )
+
+        # Возвращаем только тех, кто имеет статус 'accepted'
+        accepted_friends = [
+            friend.receiver if friend.sender == request.user else friend.sender
+            for friend in friends
+        ]
+
+        # Сериализация полученных друзей
+        serializer = UserSerializer(accepted_friends, many=True)
+        return Response(serializer.data)
 
     @action(detail=False, methods=['get'], url_path='pending_requests')
     def pending_requests(self, request):
