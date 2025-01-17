@@ -16,8 +16,17 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='profile')
     def profile(self, request):
         user = self.request.user
-        serializer = self.get_serializer(user)
+        serializer = self.get_serializer(user, context={'request': request})
         return Response(serializer.data)
+
+    @action(detail=False, methods=['put'], url_path='profile_edit')
+    def update_profile(self, request):
+        user = self.request.user
+        serializer = UserSerializer(user, data=request.data, partial=True, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()  # Здесь данные должны быть обновлены
+            return Response(serializer.data)  # Возвращаем обновленные данные
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=['get'], url_path='search')
     def search(self, request):

@@ -10,6 +10,13 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'phone', 'avatar', 'bio', 'created_at']
         read_only_fields = ['created_at']
 
+    def update(self, instance, validated_data):
+        # Здесь можно добавить дополнительные шаги при обновлении, если это необходимо
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
+
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
