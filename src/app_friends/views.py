@@ -111,12 +111,12 @@ class FriendViewSet(viewsets.ModelViewSet):
         ]
 
         # Сериализация полученных друзей
-        serializer = UserSerializer(accepted_friends, many=True)
+        serializer = UserSerializer(accepted_friends, many=True, context={'request': request})
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'], url_path='pending_requests')
     def pending_requests(self, request):
         """Получить список всех ожидающих заявок"""
         requests = FriendRequest.objects.filter(to_user=request.user, status='pending')
-        serializer = FriendRequestSerializer(requests, many=True)  # Передаем все заявки в сериализатор
+        serializer = FriendRequestSerializer(requests, many=True, context={'request': request})  # Передаем все заявки в сериализатор
         return Response(serializer.data)
