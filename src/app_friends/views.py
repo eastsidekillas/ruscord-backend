@@ -72,13 +72,12 @@ class GetFriendRequests(viewsets.ViewSet):
     authentication_classes = [CookieJWTAuthentication]
 
     def list(self, request):
-        # Получаем текущего пользователя
         user_profile = request.user.profile
 
-        outgoing = FriendRequest.objects.filter(from_user=user_profile, status='pending')
+        incoming = FriendRequest.objects.filter(to_user=user_profile, status='pending')
 
         return Response({
-            'outgoing': FriendRequestSerializer(outgoing, many=True).data
+            'incoming': FriendRequestSerializer(incoming, many=True, context={'request': request}).data
         })
 
 
@@ -92,7 +91,7 @@ class PostToFriendRequest(viewsets.ViewSet):
         user_profile = user.profile
 
         try:
-            friend_request = FriendRequest.objects.get(id=request_id, from_user=user_profile)
+            friend_request = FriendRequest.objects.get(id=request_id, to_user=user_profile)
         except FriendRequest.DoesNotExist:
             return Response({'error': f'Запрос с ID {request_id} для пользователя {user_profile} не найден'}, status=404)
 
@@ -100,8 +99,10 @@ class PostToFriendRequest(viewsets.ViewSet):
             friend_request.status = 'accepted'
             friend_request.save()
 
-            # Создание взаимной дружбы
-            Friend.objects.create(sender=user_profile, receiver=friend_request.to_user)
+            Friend.objects.create(
+                sender=friend_request.from_user,
+                receiver=user_profile
+            )
 
             return Response({'message': 'OK!'})
         elif action == 'reject':
