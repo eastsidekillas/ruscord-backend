@@ -15,7 +15,7 @@ COPY pyproject.toml poetry.lock README.md ./
 RUN poetry install -v --no-interaction --no-ansi --no-root \
     && rm -rf ~/.cache/pypoetry/{cache,artifacts}
 
-COPY ./src /app
+COPY ./src /app/src
 RUN poetry install --no-interaction --no-ansi --without=dev
 
 
