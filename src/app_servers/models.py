@@ -1,19 +1,41 @@
 import uuid
+import os
 from django.db import models
 from django.utils import timezone
 from datetime import timedelta
+from io import BytesIO
+from PIL import Image
+from django.core.files.base import ContentFile
 from app_users.models import Profile
 
 
 class Server(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
-    avatar = models.ImageField(upload_to='servers/', null=True, blank=True)
+    avatar = models.ImageField(upload_to='servers/avatars/', null=True, blank=True)
     owner = models.ForeignKey(Profile, on_delete=models.SET_NULL, null=True, blank=True, related_name='owned_servers')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if self.avatar:
+            self.avatar = self.convert_image_to_webp(self.avatar, 'servers/avatars/')
+        super().save(*args, **kwargs)
+
+    def convert_image_to_webp(self, image_field, upload_path):
+        img = Image.open(image_field)
+        img = img.convert('RGB')
+        img.thumbnail((512, 512))
+
+        buffer = BytesIO()
+        img.save(buffer, format='WEBP', quality=80)
+
+        name, ext = os.path.splitext(image_field.name)
+        webp_name = f"{name}.webp"
+
+        return ContentFile(buffer.getvalue(), name=webp_name)
 
 
 class Member(models.Model):

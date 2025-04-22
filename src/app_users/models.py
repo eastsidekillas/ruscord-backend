@@ -1,4 +1,8 @@
+import os
 from django.db import models
+from io import BytesIO
+from PIL import Image
+from django.core.files.base import ContentFile
 from django.contrib.auth.models import (AbstractBaseUser, BaseUserManager, PermissionsMixin)
 
 
@@ -41,7 +45,6 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
 
 class Profile(models.Model):
-
     STATUS_CHOICES = [
         ('online', 'В сети'),
         ('busy', 'Занят'),
@@ -61,3 +64,21 @@ class Profile(models.Model):
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if self.avatar:
+            self.avatar = self.convert_image_to_webp(self.avatar, 'avatars/users/')
+        super().save(*args, **kwargs)
+
+    def convert_image_to_webp(self, image_field, upload_path):
+        img = Image.open(image_field)
+        img = img.convert('RGB')
+        img.thumbnail((512, 512))
+
+        buffer = BytesIO()
+        img.save(buffer, format='WEBP', quality=80)
+
+        name, ext = os.path.splitext(image_field.name)
+        webp_name = f"{name}.webp"
+
+        return ContentFile(buffer.getvalue(), name=webp_name)

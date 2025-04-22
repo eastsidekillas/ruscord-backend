@@ -19,7 +19,7 @@ ALLOWED_HOSTS = list(filter(None, [
 SITE_URL = "http://localhost:8000"
 
 CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "https://localhost:4200").split(",")
-CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "https://afisha-lesnoy.ru").split(",")
+CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "https://ruscord.click").split(",")
 
 CORS_ALLOW_CREDENTIALS = True
 
