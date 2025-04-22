@@ -1,23 +1,20 @@
 from rest_framework import serializers
 from .models import Friend, FriendRequest
-from app_users.serializers import UserSerializer
+from app_users.serializers import ProfileSerializer
 
 
 class FriendSerializer(serializers.ModelSerializer):
-    sender = UserSerializer(read_only=True)
-    receiver = UserSerializer(read_only=True)
+    sender = ProfileSerializer(read_only=True)
+    receiver = ProfileSerializer(read_only=True)
 
     class Meta:
         model = Friend
-        fields = ['id', 'sender', 'receiver', 'created_at']
-        read_only_fields = ['created_at']
+        fields = ['id', 'sender', 'receiver']
 
 
 class FriendRequestSerializer(serializers.ModelSerializer):
-    from_user = UserSerializer(read_only=True)
-    to_user = UserSerializer(read_only=True)
+    to_user = ProfileSerializer()
 
     class Meta:
         model = FriendRequest
-        fields = ['id', 'from_user', 'to_user', 'status', 'created_at']
-        read_only_fields = ['created_at']
+        fields = ['id', 'to_user', 'status', 'created_at']

@@ -1,14 +1,13 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import DirectMessageChannelViewSet
+from .views import ChannelViewSet
+
 
 router = DefaultRouter()
-router.register(r'channels', DirectMessageChannelViewSet, basename='channel')
+router.register(r'channels', ChannelViewSet, basename='channels')
+
 
 urlpatterns = [
     path('', include(router.urls)),
-]
 
-urlpatterns = router.urls
-
-
+] + router.urls

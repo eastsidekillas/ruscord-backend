@@ -1,6 +1,5 @@
 from django.db import models
 from django.contrib.auth.models import (AbstractBaseUser, BaseUserManager, PermissionsMixin)
-import uuid
 
 
 class CustomUserManager(BaseUserManager):
@@ -23,14 +22,9 @@ class CustomUserManager(BaseUserManager):
         return self.create_user(email, username, password, **extra_fields)
 
 
-# Модель пользователя
 class CustomUser(AbstractBaseUser, PermissionsMixin):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     username = models.CharField(max_length=255, unique=True, verbose_name=('Имя пользователя'))
     email = models.EmailField(unique=True, verbose_name=('Email'))
-    phone = models.CharField(max_length=11, null=True, blank=True, verbose_name=('Номер телефона'))
-    avatar = models.ImageField(upload_to='avatars/users/', null=True, blank=True, verbose_name=('Аватар'))
-    bio = models.TextField(blank=True, null=True, verbose_name=('Обо мне'))
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=('Дата регистрации'))
 
     is_active = models.BooleanField(default=True)
@@ -45,14 +39,25 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.username
 
-    def has_perm(self, perm, obj=None):
-        """Returns True if the user has the specified permission."""
-        return True
 
-    def has_module_perms(self, app_label):
-        """Returns True if the user has permissions for the specified app label."""
-        return True
+class Profile(models.Model):
 
-    def get_group_permissions(self, obj=None):
-        """Returns a set of permissions for groups the user belongs to."""
-        return set()
+    STATUS_CHOICES = [
+        ('online', 'В сети'),
+        ('busy', 'Занят'),
+        ('idle', 'Не активен'),
+        ('offline', 'Не в сети'),
+    ]
+
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='profile')
+    name = models.CharField(max_length=255)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='offline')
+    avatar = models.ImageField(upload_to='avatars/users/', null=True, blank=True)
+    global_name = models.CharField(max_length=255, null=True)
+    bio = models.TextField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name

@@ -7,47 +7,37 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1")
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG')
+ALLOWED_HOSTS = list(filter(None, [
+    "localhost",
+    "127.0.0.1",
+    os.getenv("PUBLIC_HOST"),
+]))
 
-ALLOWED_HOSTS = ['http://localhost:4200', 'localhost', 'localhost:8000', '127.0.0.1', 'http://localhost:8000']
-if os.getenv('PUBLIC_HOST'):
-    ALLOWED_HOSTS.append(os.environ['PUBLIC_HOST'])
-    CSRF_TRUSTED_ORIGINS = [f'https://{os.environ["PUBLIC_HOST"]}', 'http://localhost:8000']
+SITE_URL = "http://localhost:8000"
+
+CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "https://localhost:4200").split(",")
+CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "https://afisha-lesnoy.ru").split(",")
+
+CORS_ALLOW_CREDENTIALS = True
 
 
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:4200',
+CORS_ALLOW_HEADERS = [
+    "content-type",
+    "authorization",
+    "x-csrftoken",
 ]
+
 
 ASGI_APPLICATION = 'ruscord.asgi.application'
 
 AUTH_USER_MODEL = 'app_users.CustomUser'
 
-CORS_ALLOW_CREDENTIALS = True
-
-CORS_ALLOW_HEADERS = [
-    'content-type',
-    'authorization',
-    'x-xsrf-token',
-    'x-csrftoken',
-    'enctype',
-]
-
-CORS_ALLOW_METHODS = [
-    'GET',
-    'POST',
-    'PUT',
-    'PATCH',
-    'DELETE',
-    'OPTIONS',
-]
-
-
 INSTALLED_APPS = [
     'django.contrib.admin',
+    'drf_spectacular',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -57,25 +47,45 @@ INSTALLED_APPS = [
     'rest_framework',
     'channels',
     'rest_framework_simplejwt',
-    'app_friends',
+    'app_auth',
     'app_users',
+    'app_friends',
     'app_messages',
-    'app_channels'
-
+    'app_channels',
+    'app_servers'
 ]
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=30),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=60),
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=2),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "COOKIE_SETTINGS": {
+        "ACCESS_TOKEN": {
+            "key": "access_token",
+            "httponly": True,
+            "secure": True,
+            "samesite": "Strict",
+        },
+        "REFRESH_TOKEN": {
+            "key": "refresh_token",
+            "httponly": True,
+            "secure": True,
+            "samesite": "Strict",
+        },
+    },
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Ruscord API',
+    'DESCRIPTION': 'Клон Discord на Django + Angular',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
 }
 
 REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',
-    ],
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ],
+    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"],
+    "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework_simplejwt.authentication.JWTAuthentication"],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    "EXCEPTION_HANDLER": 'ruscord.utils.error_message_handler'
 }
 
 CHANNEL_LAYERS = {
@@ -85,10 +95,10 @@ CHANNEL_LAYERS = {
 }
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -120,14 +130,13 @@ WSGI_APPLICATION = 'ruscord.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': os.getenv('DATABASE_ENGINE') or 'django.db.backends.sqlite3',
-        'NAME':  os.getenv('DATABASE_NAME') or BASE_DIR / 'db.sqlite3',
-        'USER':  os.getenv('DATABASE_USER'),
-        'PASSWORD':  os.getenv('DATABASE_PASSWORD'),
-        'HOST':  os.getenv('DATABASE_HOST'),
-        'PORT':  os.getenv('DATABASE_PORT'),
+        'NAME': os.getenv('DATABASE_NAME') or BASE_DIR / 'db.sqlite3',
+        'USER': os.getenv('DATABASE_USER'),
+        'PASSWORD': os.getenv('DATABASE_PASSWORD'),
+        'HOST': os.getenv('DATABASE_HOST'),
+        'PORT': os.getenv('DATABASE_PORT'),
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -165,15 +174,10 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = os.getenv('STATIC_ROOT')
 
-
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
 MEDIA_ROOT = os.getenv('MEDIA_ROOT', 'media')
 MEDIA_URL = os.getenv('MEDIA_URL', 'media/')
-
-
-

@@ -1,122 +1,112 @@
-from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework import viewsets, status, mixins
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from .models import Friend, FriendRequest
-from django.db import models
-import uuid
-from app_users.models import CustomUser
-from .serializers import UserSerializer, FriendRequestSerializer, FriendSerializer
+from django.db.models import Q
+from app_auth.base_auth import CookieJWTAuthentication
+from app_friends.serializers import FriendRequestSerializer, FriendSerializer
+from app_users.serializers import ProfileSerializer
+from app_friends.models import FriendRequest, Friend
+from app_users.models import CustomUser, Profile
 
 
-# Вьюсет для работы с пользователями и заявками в друзья
-class FriendViewSet(viewsets.ModelViewSet):
-    queryset = Friend.objects.all()
-    serializer_class = FriendSerializer
-    permission_classes = [IsAuthenticated]
+# Получение друзей пользователя
 
-    @action(detail=True, methods=['post'])
-    def send_request(self, request, pk=None):
-        """Отправить заявку в друзья"""
-        to_user = CustomUser.objects.get(pk=pk)
+class GetUserFriends(mixins.ListModelMixin, viewsets.GenericViewSet):
+    serializer_class = ProfileSerializer
+    authentication_classes = [CookieJWTAuthentication]
 
-        if request.user.id == to_user.id:
-            return Response({"detail": "Нельзя добавить себя в друзья."}, status=status.HTTP_400_BAD_REQUEST)
+    def list(self, request, *args, **kwargs):
+        user_profile = request.user.profile
+        friends_profiles = []
 
-        if FriendRequest.objects.filter(
-                from_user=request.user,
-                to_user=to_user
-        ).exists() or FriendRequest.objects.filter(
-            from_user=to_user, to_user=request.user
-        ).exists():
-            return Response({"detail": "Заявка уже отправлена"}, status=status.HTTP_400_BAD_REQUEST)
+        friend_relations = Friend.objects.filter(sender=user_profile) | Friend.objects.filter(receiver=user_profile)
 
-        try:
-            friend_request = FriendRequest.objects.create(from_user=request.user, to_user=to_user)
-            serializer = FriendRequestSerializer(friend_request)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        for relation in friend_relations:
+            if relation.sender == user_profile:
+                friends_profiles.append(relation.receiver)
+            else:
+                friends_profiles.append(relation.sender)
 
-    @action(detail=True, methods=['post'], url_path='accept_request/(?P<request_id>[^/.]+)')
-    def accept_request(self, request, pk=None, request_id=None):
-        """Принять заявку в друзья"""
-        # Преобразуем request_id в UUID
-        from_user_id = request_id  # request_id это UUID
-        try:
-            from_user_uuid = uuid.UUID(from_user_id)  # Преобразуем в объект UUID
-        except ValueError:
-            return Response({"detail": "Неверный формат ID пользователя."}, status=status.HTTP_400_BAD_REQUEST)
+        unique_friends = list(set(friends_profiles))
 
-        # Ищем заявку по request_id и пользователю (pk)
-        friend_request = FriendRequest.objects.filter(
-            to_user=request.user,  # Получатель заявки (тот, кто принимает)
-            from_user__id=from_user_uuid,  # Используем UUID для поиска
-            status='pending'  # Только заявки в ожидании
-        ).first()
-
-        if not friend_request:
-            return Response({"detail": "Заявка не найдена или уже обработана."}, status=status.HTTP_404_NOT_FOUND)
-
-        # Обновляем статус заявки на "принято"
-        friend_request.status = 'accepted'
-        friend_request.save()
-
-        # Создаем связь "друг"
-        Friend.objects.create(sender=friend_request.from_user, receiver=friend_request.to_user)
-
-        # Возвращаем информацию о созданной связи
-        serializer = FriendSerializer(
-            Friend.objects.filter(sender=friend_request.from_user, receiver=friend_request.to_user).first())
-
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    @action(detail=True, methods=['post'])
-    def reject_request(self, request, pk=None):
-        """Отклонить заявку в друзья"""
-        friend_request = FriendRequest.objects.filter(to_user=request.user, from_user_id=pk, status='pending').first()
-        if not friend_request:
-            return Response({"detail": "Заявка не найдена"}, status=status.HTTP_404_NOT_FOUND)
-
-        friend_request.status = 'rejected'
-        friend_request.save()
-        serializer = FriendRequestSerializer(friend_request)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    @action(detail=True, methods=['post'])
-    def remove_friend(self, request, pk=None):
-        """Удалить друга"""
-        friend = Friend.objects.filter(
-            models.Q(sender=request.user, receiver_id=pk) | models.Q(sender_id=pk, receiver=request.user)
-        ).first()
-        if not friend:
-            return Response({"detail": "Друг не найден"}, status=status.HTTP_404_NOT_FOUND)
-
-        friend.delete()
-        return Response({"detail": "Друг удален"}, status=status.HTTP_204_NO_CONTENT)
-
-        # Получение списка друзей текущего пользователя
-    @action(detail=False, methods=['get'], url_path='my_friends')
-    def my_friends(self, request):
-        # Находим только тех, кто принял заявку в друзья
-        friends = Friend.objects.filter(
-            models.Q(sender=request.user) | models.Q(receiver=request.user)
-            # Найти всех, кто связан с текущим пользователем
-        )
-
-        # Возвращаем только тех, кто имеет статус 'accepted'
-        accepted_friends = [
-            friend.receiver if friend.sender == request.user else friend.sender
-            for friend in friends
-        ]
-
-        # Сериализация полученных друзей
-        serializer = UserSerializer(accepted_friends, many=True, context={'request': request})
+        serializer = self.get_serializer(unique_friends, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'], url_path='pending_requests')
-    def pending_requests(self, request):
-        """Получить список всех ожидающих заявок"""
-        requests = FriendRequest.objects.filter(to_user=request.user, status='pending')
-        serializer = FriendRequestSerializer(requests, many=True, context={'request': request})  # Передаем все заявки в сериализатор
-        return Response(serializer.data)
+
+# Отправка запроса в друзья
+class PostFriendRequest(viewsets.ViewSet):
+    authentication_classes = [CookieJWTAuthentication]
+
+    def create(self, request):
+        to_user_id = request.data.get('to_user_id')
+        from_user = request.user
+
+        if str(from_user.id) == str(to_user_id):
+            return Response({'error': "Вы не можете добавить себя"}, status=400)
+
+        try:
+            # Получаем пользователя по ID
+            to_user = CustomUser.objects.get(id=to_user_id)
+            # Получаем профиль пользователя
+            to_user_profile = to_user.profile
+        except CustomUser.DoesNotExist:
+            return Response({'error': 'Пользователь не найден'}, status=404)
+
+        # Получаем профиль отправителя запроса
+        from_user_profile = from_user.profile
+
+        # Проверка на уже отправленный запрос
+        existing = FriendRequest.objects.filter(
+            from_user=from_user_profile, to_user=to_user_profile, status='pending'
+        ).exists()
+
+        if existing:
+            return Response({'error': 'Запрос на добавление в друзья уже отправлен'}, status=400)
+
+        # Создаем новый запрос
+        FriendRequest.objects.create(from_user=from_user_profile, to_user=to_user_profile)
+        return Response({'message': 'OK!'}, status=status.HTTP_201_CREATED)
+
+
+# Получение исходящих запросов в друзья
+class GetFriendRequests(viewsets.ViewSet):
+    authentication_classes = [CookieJWTAuthentication]
+
+    def list(self, request):
+        # Получаем текущего пользователя
+        user_profile = request.user.profile
+
+        outgoing = FriendRequest.objects.filter(from_user=user_profile, status='pending')
+
+        return Response({
+            'outgoing': FriendRequestSerializer(outgoing, many=True).data
+        })
+
+
+# Принятие/отклонение запроса в друзья
+class PostToFriendRequest(viewsets.ViewSet):
+    authentication_classes = [CookieJWTAuthentication]
+
+    def create(self, request, request_id):
+        action = request.data.get('action')
+        user = request.user
+        user_profile = user.profile
+
+        try:
+            friend_request = FriendRequest.objects.get(id=request_id, from_user=user_profile)
+        except FriendRequest.DoesNotExist:
+            return Response({'error': f'Запрос с ID {request_id} для пользователя {user_profile} не найден'}, status=404)
+
+        if action == 'accept':
+            friend_request.status = 'accepted'
+            friend_request.save()
+
+            # Создание взаимной дружбы
+            Friend.objects.create(sender=user_profile, receiver=friend_request.to_user)
+
+            return Response({'message': 'OK!'})
+        elif action == 'reject':
+            friend_request.status = 'rejected'
+            friend_request.save()
+            return Response({'message': 'Запрос на добавление в друзья отклонен'})
+        else:
+            return Response({'error': 'Invalid action'}, status=400)

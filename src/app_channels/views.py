@@ -1,55 +1,46 @@
+from django.db import models
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
-from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import Channel
+from rest_framework.response import Response
+
+from app_auth.base_auth import CookieJWTAuthentication
+
+from app_users.models import Profile
+
+
 from .serializers import ChannelSerializer
-from app_users.models import CustomUser
+from .utils import get_or_create_dm_channel
+from .models import Channel
 
 
-class DirectMessageChannelViewSet(viewsets.ViewSet):
+class ChannelViewSet(viewsets.ModelViewSet):
+    queryset = Channel.objects.all()
+    serializer_class = ChannelSerializer
+    authentication_classes = [CookieJWTAuthentication]
     permission_classes = [IsAuthenticated]
 
-    @action(detail=False, methods=['post'])
-    def get_or_create_channel(self, request):
-        """Создать или получить существующий личный чат"""
-        user = request.user
-        recipient_id = request.data.get('recipient_id')
+    def get_queryset(self):
+        profile = self.request.user.profile
+        # Каналы, где пользователь участник ИЛИ публичные каналы на серверах, где он участник
+        return Channel.objects.filter(
+            models.Q(participants=profile) |
+            models.Q(is_private=False, server__members__profile=profile)
+        ).distinct()
 
-        if not recipient_id:
-            return Response({"detail": "Не указан recipient_id"}, status=status.HTTP_400_BAD_REQUEST)
+    @action(detail=False, methods=["post"], url_path="dm")
+    def create_dm(self, request):
+        target_user_id = request.data.get("target_user_id")
+        if not target_user_id:
+            return Response({'error': 'target_user_id is required'}, status=400)
 
-        recipient = CustomUser.objects.filter(id=recipient_id).first()
-        if not recipient:
-            return Response({"detail": "Пользователь не найден"}, status=status.HTTP_404_NOT_FOUND)
-
-        # Ищем существующий канал
-        channel = Channel.objects.filter(members=user).filter(members=recipient).first()
-
-        # Если канал не найден, создаем новый
-        if not channel:
-            channel = Channel.objects.create()
-            channel.members.add(user, recipient)
-
-        serializer = ChannelSerializer(channel)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    @action(detail=False, methods=['get'])
-    def my_channels(self, request):
-        """Получить все чаты текущего пользователя"""
-        channels = Channel.objects.filter(members=request.user)
-        serializer = ChannelSerializer(channels, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    @action(detail=True, methods=['get'])
-    def channel_info(self, request, pk=None):
-        """Получить информацию о канале по UUID"""
         try:
-            # Находим канал по UUID
-            channel = Channel.objects.get(uuid=pk)
-        except Channel.DoesNotExist:
-            return Response({"detail": "Канал не найден"}, status=status.HTTP_404_NOT_FOUND)
+            current = request.user.profile
+            target = Profile.objects.get(id=target_user_id)
+        except Profile.DoesNotExist:
+            return Response({'error': 'User not found'}, status=404)
 
-        # Сериализуем канал
-        serializer = ChannelSerializer(channel, context={'request': request})
+        channel = get_or_create_dm_channel(current, target)
+        serializer = self.get_serializer(channel)
         return Response(serializer.data, status=status.HTTP_200_OK)
+

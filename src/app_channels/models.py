@@ -1,12 +1,37 @@
-import uuid
 from django.db import models
-from app_users.models import CustomUser
+from app_users.models import Profile
+from app_servers.models import Server
 
 
 class Channel(models.Model):
-    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, verbose_name="Уникальный ID чата")
-    members = models.ManyToManyField(CustomUser, related_name='dm_channels', verbose_name="Участники")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    TEXT = 'TEXT'
+    AUDIO = 'AUDIO'
+
+    CHANNEL_TYPES = [
+        (TEXT, 'Text'),
+        (AUDIO, 'Audio'),
+    ]
+
+    DM = 'DM'
+    GROUP = 'GROUP'
+
+    CHANNEL_SCOPE = [
+        (DM, 'Direct Message'),
+        (GROUP, 'Group Call'),
+    ]
+
+    server = models.ForeignKey(Server, on_delete=models.CASCADE, related_name='channels', null=True, blank=True)
+    name = models.CharField(max_length=255)
+    channel_type = models.CharField(max_length=5, choices=CHANNEL_TYPES, default=TEXT)
+    scope = models.CharField(max_length=5, choices=CHANNEL_SCOPE, default=DM)
+
+    owner = models.ForeignKey(Profile, on_delete=models.SET_NULL, null=True, blank=True, related_name='owned_channels')
+    participants = models.ManyToManyField(Profile, related_name='channels')
+
+    is_private = models.BooleanField(default=True)
+    is_active_call = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Channel {self.uuid}"
+        return f"{self.name} ({self.scope})"

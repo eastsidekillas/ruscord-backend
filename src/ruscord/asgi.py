@@ -1,16 +1,20 @@
 import os
 from django.core.asgi import get_asgi_application
-from channels.routing import ProtocolTypeRouter, URLRouter
-from channels.auth import AuthMiddlewareStack
-from app_messages import routing
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ruscord.settings')
 
+application = get_asgi_application()
+
+from channels.routing import ProtocolTypeRouter, URLRouter
+from app_auth.base_auth import JWTAuthMiddleware
+
+import app_gateway.routing
+
 application = ProtocolTypeRouter({
-    "http": get_asgi_application(),
-    "websocket": AuthMiddlewareStack(
+    "http": application,
+    "websocket": JWTAuthMiddleware(
         URLRouter(
-            routing.websocket_urlpatterns
+            app_gateway.routing.websocket_urlpatterns
         )
     ),
 })

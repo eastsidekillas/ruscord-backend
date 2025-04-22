@@ -1,13 +1,12 @@
 from rest_framework import serializers
-from .models import Message
-from app_users.serializers import UserSerializer
+from .models import Messages
+from app_users.serializers import ProfileSerializer
 
 
-class MessageSerializer(serializers.ModelSerializer):
-    sender = UserSerializer(read_only=True)
-    recipient = UserSerializer(read_only=True)
+class DirectMessageSerializer(serializers.ModelSerializer):
+    sender = ProfileSerializer(read_only=True)
 
     class Meta:
-        model = Message
-        fields = ['id', 'sender', 'recipient', 'text', 'timestamp', 'is_read']
-        read_only_fields = ['timestamp', 'is_read']
+        model = Messages
+        fields = ['id', 'channel', 'sender', 'content', 'file_url', 'deleted', 'created_at']
+        read_only_fields = ['id', 'sender', 'created_at']
