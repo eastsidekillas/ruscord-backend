@@ -13,8 +13,10 @@ class FriendSerializer(serializers.ModelSerializer):
 
 
 class FriendRequestSerializer(serializers.ModelSerializer):
+    from_user = ProfileSerializer()
     to_user = ProfileSerializer()
 
     class Meta:
         model = FriendRequest
-        fields = ['id', 'to_user', 'status', 'created_at']
+        fields = ['id', 'from_user', 'to_user', 'status', 'created_at']
+
