@@ -53,10 +53,39 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             print(
                 f"WebSocket соединение разорвано для канала {self.channel_id} пользователем {self.user.id} с кодом {close_code}.")
 
-    async def receive(self, text_data):
-        text_data_json = json.loads(text_data)
-        message = text_data_json['message']
+    async def receive_json(self, content, **kwargs):
+        message_type = content.get('type')
+        if message_type == 'typing':
+            await self.handle_typing(content)
+        elif message_type == 'chat.message':
+            await self.handle_chat_message(content)
+        else:
+            print(f"Неизвестный тип сообщения: {message_type}")
 
+    async def handle_typing(self, event):
+        user = self.scope['user']
+        try:
+            profile = await database_sync_to_async(Profile.objects.get)(user=user)
+            username = profile.name if hasattr(profile, 'name') else user.username
+        except Profile.DoesNotExist:
+            print(f"Ошибка: Profile для пользователя {user.id} не найден.")
+            return
+
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'user.typing',
+                'sender_username': username,
+                'sender_id': user.id,
+                'typing': event.get('typing', False),
+            }
+        )
+
+    async def user_typing(self, event):
+        await self.send_json(event)
+
+    async def handle_chat_message(self, event):
+        message = event['message']
         sender_user = self.user
         try:
             profile = await database_sync_to_async(Profile.objects.get)(user=sender_user)
@@ -81,12 +110,11 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             scheme = self.scope.get('scheme', 'http')
             avatar_url = build_absolute_uri(avatar_url, host, scheme)
 
-
         if self.room_group_name:
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
-                    'type': 'chat_message',
+                    'type': 'chat.message',
                     'message': message,
                     'sender_username': profile.name if hasattr(profile, 'name') else sender_user.username,
                     'sender_avatar': avatar_url,
@@ -96,14 +124,4 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             )
 
     async def chat_message(self, event):
-        message = event['message']
-        sender_username = event['sender_username']
-        sender_avatar = event['sender_avatar']
-        timestamp = event['timestamp']
-
-        await self.send(text_data=json.dumps({
-            'message': message,
-            'sender_username': sender_username,
-            'sender_avatar': sender_avatar,
-            'timestamp': timestamp
-        }))
+        await self.send_json(event)
