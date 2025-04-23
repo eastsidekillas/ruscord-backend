@@ -93,7 +93,7 @@ class ServerViewSet(viewsets.ModelViewSet):
     def list_members(self, request, pk=None):
         server = self.get_object()
         members = Member.objects.filter(server=server)
-        serializer = MemberSerializer(members, many=True)
+        serializer = MemberSerializer(members, many=True, context={'request': request})
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'], url_path='invite')
