@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 
 from .base_auth import CookieJWTAuthentication
 from .serializers import RegistrationSerializer, LoginSerializer
+from ruscord.utils import build_absolute_uri
 
 
 class CheckAuthAPIView(APIView):
@@ -19,11 +20,15 @@ class CheckAuthAPIView(APIView):
         user = request.user
         token = AccessToken.for_user(user)
 
+        profile = getattr(user, 'profile', None)
+
         return Response({
             "user_id": user.id,
             "username": user.username,
             "email": user.email,
-            "token": str(token)
+            "token": str(token),
+            "name": profile.name if profile else "",
+            "avatar": request.build_absolute_uri(profile.avatar.url) if profile and profile.avatar else None,
         })
 
 
