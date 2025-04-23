@@ -20,8 +20,11 @@ class Server(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
-        if self.avatar:
-            self.avatar = self.convert_image_to_webp(self.avatar, 'servers/avatars/')
+        # Проверяем, был ли изменен файл аватара
+        if self.avatar and self.avatar.file:
+            # Проверяем, не является ли файл уже WebP
+            if not self.avatar.name.lower().endswith('.webp'):
+                self.avatar = self.convert_image_to_webp(self.avatar, 'servers/avatars/')
         super().save(*args, **kwargs)
 
     def convert_image_to_webp(self, image_field, upload_path):
@@ -35,6 +38,7 @@ class Server(models.Model):
         name, ext = os.path.splitext(image_field.name)
         webp_name = f"{name}.webp"
 
+        self.avatar.name = webp_name
         return ContentFile(buffer.getvalue(), name=webp_name)
 
 

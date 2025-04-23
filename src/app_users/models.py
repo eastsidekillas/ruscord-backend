@@ -3,6 +3,7 @@ from django.db import models
 from io import BytesIO
 from PIL import Image
 from django.core.files.base import ContentFile
+from ruscord.storage import OverwriteStorage
 from django.contrib.auth.models import (AbstractBaseUser, BaseUserManager, PermissionsMixin)
 
 
@@ -55,7 +56,7 @@ class Profile(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='profile')
     name = models.CharField(max_length=255)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='offline')
-    avatar = models.ImageField(upload_to='avatars/users/', null=True, blank=True)
+    avatar = models.ImageField(upload_to='avatars/users/', storage=OverwriteStorage, null=True, blank=True)
     global_name = models.CharField(max_length=255, null=True)
     bio = models.TextField(blank=True, null=True)
 
@@ -66,8 +67,11 @@ class Profile(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
-        if self.avatar:
-            self.avatar = self.convert_image_to_webp(self.avatar, 'avatars/users/')
+        # Проверяем, был ли изменен файл аватара
+        if self.avatar and self.avatar.file:
+            # Проверяем, не является ли файл уже WebP
+            if not self.avatar.name.lower().endswith('.webp'):
+                self.avatar = self.convert_image_to_webp(self.avatar, 'avatars/users/')
         super().save(*args, **kwargs)
 
     def convert_image_to_webp(self, image_field, upload_path):
@@ -81,4 +85,5 @@ class Profile(models.Model):
         name, ext = os.path.splitext(image_field.name)
         webp_name = f"{name}.webp"
 
+        self.avatar.name = webp_name
         return ContentFile(buffer.getvalue(), name=webp_name)
