@@ -1,0 +1,6 @@
+port: 7880
+rtc:
+  udp_port: 50000
+  udp_port_range: 10000
+keys:
+  devkey: secret
