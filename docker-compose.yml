@@ -10,6 +10,11 @@ x-common-variables: &common-variables
   DATABASE_PASSWORD: ruscord
   DATABASE_HOST: postgres
   DATABASE_PORT: 5432
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  REDIS_DB: 0
+  LIVEKIT_API_KEY: devkey
+  LIVEKIT_API_SECRET: secret
   STATIC_ROOT: /app/static
   MEDIA_ROOT: /app/media
   MEDIA_URL:
@@ -23,7 +28,10 @@ services:
       - media:/app/media
     depends_on:
       - postgres
+      - redis
       - migration
+      - livekit
+
   collectstatic:
     build: .
     user: root
@@ -32,6 +40,7 @@ services:
     volumes:
       - static:/app/static
     command: ["django-admin", "collectstatic", "--no-input"]
+
   migration:
     build: .
     env_file: .env
@@ -39,6 +48,7 @@ services:
     command: ["django-admin", "migrate", "--no-input"]
     depends_on:
       - postgres
+
   postgres:
     image: postgres:16-alpine
     environment:
@@ -49,6 +59,24 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  livekit:
+    image: livekit/livekit-server:latest
+    command: --config /livekit.yaml
+    volumes:
+      - ./livekit.yaml:/livekit.yaml
+    ports:
+      - "7880:7880"               # HTTP API
+      - "7881:7881"               # WebSocket
+      - "50000-60000:50000-60000/udp"  # RTP Media UDP Ports
+
   frontend:
     build: ../ruscord-fe
     volumes:
@@ -62,5 +90,6 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:
   static:
   media:

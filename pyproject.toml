@@ -18,12 +18,12 @@ channels-redis = "^4.2.0"
 daphne = "^4.1.2"
 python-dotenv = "^1.1.0"
 psycopg2 = "^2.9.10"
-livekit = "^1.0.1"
-livekit-api = "^1.0.1"
+livekit-api = "1.0.2"
 drf-nested-routers = "^0.94.1"
 drf-spectacular = "^0.28.0"
 datetime = "^5.5"
 twisted = {extras = ["http2", "tls"], version = "^24.11.0"}
+redis = "^5.2.1"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.10.1"

@@ -33,6 +33,7 @@ class CheckAuthAPIView(APIView):
 
 
 class TokenRefreshView(APIView):
+
     def post(self, request):
         refresh_token = request.COOKIES.get(settings.SIMPLE_JWT["COOKIE_SETTINGS"]["REFRESH_TOKEN"]["key"])
         if not refresh_token:
