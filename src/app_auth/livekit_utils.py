@@ -1,8 +1,6 @@
 import os
 from livekit import api
-from dotenv import load_dotenv
-
-load_dotenv()
+from django.conf import settings
 
 
 def generate_livekit_token(identity, channel_id, video_grants=None, metadata=None):
@@ -15,7 +13,7 @@ def generate_livekit_token(identity, channel_id, video_grants=None, metadata=Non
         video_grants (api.VideoGrants, optional): Права доступа к видео.
                                                   Defaults to стандартные права.
     """
-    token = api.AccessToken(os.getenv('LIVEKIT_API_KEY'), os.getenv('LIVEKIT_API_SECRET')) \
+    token = api.AccessToken(settings.LIVEKIT_API_KEY, settings.LIVEKIT_API_SECRET) \
         .with_identity(identity)
 
     if metadata:
