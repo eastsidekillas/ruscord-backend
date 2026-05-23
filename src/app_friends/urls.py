@@ -6,7 +6,8 @@ router = SimpleRouter()
 router.register(r'users/me/relationships', GetUserFriends, basename='user-relationships')
 router.register(r'users/me/friends/requests', GetFriendRequests, basename='user-friend-requests')
 router.register(r'users/me/friends/send', PostFriendRequest, basename='user-send-friend-request')
-router.register(r'users/me/friends/(?P<request_id>\d+)/respond', PostToFriendRequest, basename='user-respond-to-friend-request')
+UUID_RE = r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+router.register(rf'users/me/friends/(?P<request_id>{UUID_RE})/respond', PostToFriendRequest, basename='user-respond-to-friend-request')
 
 
 urlpatterns = [

@@ -9,5 +9,4 @@ router.register(r'channels', ChannelViewSet, basename='channels')
 
 urlpatterns = [
     path('', include(router.urls)),
-
-] + router.urls
+]

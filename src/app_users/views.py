@@ -26,18 +26,43 @@ class GetUserProfile(APIView):
         return Response(serializer.data)
 
 
-class GetUserChannels(viewsets.ModelViewSet):
+class GetUserChannels(viewsets.ReadOnlyModelViewSet):
     authentication_classes = [CookieJWTAuthentication]
-    http_method_names = ['get']
     queryset = Channel.objects.all()
     serializer_class = ChannelSerializer
 
     def get_queryset(self):
         user_id = self.kwargs.get('user_pk')
-        channels = Channel.objects.filter(profile_id=user_id)
+        channels = Channel.objects.filter(participants__user_id=user_id)
         if not channels.exists():
             raise NotFound()
         return channels
+
+
+class MeProfileView(APIView):
+    authentication_classes = [CookieJWTAuthentication]
+
+    def get(self, request):
+        profile = get_object_or_404(Profile, user=request.user)
+        serializer = ProfileSerializer(profile, context={'request': request})
+        return Response(serializer.data)
+
+    def patch(self, request):
+        profile = get_object_or_404(Profile, user=request.user)
+        if 'name' in request.data:
+            profile.name = request.data['name']
+        if 'bio' in request.data:
+            profile.bio = request.data['bio']
+        if 'global_name' in request.data:
+            profile.global_name = request.data['global_name']
+        if 'avatar' in request.FILES:
+            profile.avatar = request.FILES['avatar']
+        elif request.data.get('remove_avatar') == 'true' and profile.avatar:
+            profile.avatar.delete(save=False)
+            profile.avatar = None
+        profile.save()
+        serializer = ProfileSerializer(profile, context={'request': request})
+        return Response(serializer.data)
 
 
 class PostUsersSearch(APIView):

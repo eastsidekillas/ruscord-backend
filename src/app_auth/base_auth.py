@@ -11,43 +11,32 @@ from app_users.models import CustomUser
 
 class JWTAuthMiddleware(BaseMiddleware):
     async def __call__(self, scope, receive, send):
-        # Извлекаем токен из query string
         query_params = parse_qs(scope.get("query_string", b"").decode())
         token = query_params.get('token', [None])[0]
 
         if token:
             try:
-                # Проверяем токен с помощью SimpleJWT
                 access_token = AccessToken(token)
-                user_id = access_token['user_id']
-
-                # Получаем пользователя из базы данных
-                user = await self.get_user_from_token(user_id)
-                if user:
-                    scope['user'] = user
-                else:
-                    scope['user'] = AnonymousUser()  # Пользователь не найден, анонимный
+                user = await self.get_user_from_token(access_token['user_id'])
+                scope['user'] = user or AnonymousUser()
             except Exception as e:
-                print(f"Error during token processing: {str(e)}")
-                scope['user'] = AnonymousUser()  # Ошибка в обработке токена, анонимный пользователь
+                print(f"WS token error: {e}")
+                scope['user'] = AnonymousUser()
         else:
-            scope['user'] = AnonymousUser()  # Нет токена, анонимный пользователь
+            scope['user'] = AnonymousUser()
 
         return await super().__call__(scope, receive, send)
 
     @database_sync_to_async
     def get_user_from_token(self, user_id):
         try:
-            # Получаем пользователя по ID
-            user = CustomUser.objects.get(id=user_id)
-            return user
+            return CustomUser.objects.get(id=user_id)
         except CustomUser.DoesNotExist:
-            return None  # Если пользователь не найден, возвращаем None
+            return None
 
 
 class CookieJWTAuthentication(JWTAuthentication):
     def authenticate(self, request):
-        # Извлекаем токен из cookies
         token = request.COOKIES.get('access_token')
         if not token:
             raise AuthenticationFailed({
@@ -56,7 +45,6 @@ class CookieJWTAuthentication(JWTAuthentication):
             })
 
         try:
-            # Проверка токена с помощью стандартного механизма JWT
             access_token = AccessToken(token)
         except Exception:
             raise AuthenticationFailed({
@@ -64,10 +52,9 @@ class CookieJWTAuthentication(JWTAuthentication):
                 "code": 0
             })
 
-        # делаем возврат пользователя
-        return self.getUser_from_token(access_token)
+        return self.get_user_from_token(access_token)
 
-    def getUser_from_token(self, access_token):
+    def get_user_from_token(self, access_token):
         try:
             user = self.get_user(access_token)
             return user, access_token
