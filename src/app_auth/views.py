@@ -12,6 +12,16 @@ from .serializers import RegistrationSerializer, LoginSerializer
 from ruscord.utils import build_absolute_uri
 
 
+class LogoutAPIView(APIView):
+    def post(self, request):
+        response = Response(status=status.HTTP_204_NO_CONTENT)
+        for token_type in ["ACCESS_TOKEN", "REFRESH_TOKEN"]:
+            key = settings.SIMPLE_JWT["COOKIE_SETTINGS"][token_type]["key"]
+            response.delete_cookie(key)
+        request.session.flush()
+        return response
+
+
 class CheckAuthAPIView(APIView):
     authentication_classes = [CookieJWTAuthentication]
 
@@ -61,6 +71,7 @@ class TokenRefreshView(APIView):
 
 
 class LoginAPIView(APIView):
+    authentication_classes = []
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -85,6 +96,7 @@ class LoginAPIView(APIView):
 
 
 class RegistrationAPIView(APIView):
+    authentication_classes = []
     serializer_class = RegistrationSerializer
     permission_classes = [AllowAny]
 

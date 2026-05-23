@@ -8,6 +8,13 @@ from app_friends.models import FriendRequest, Friend
 from app_users.models import CustomUser, Profile
 
 
+def are_friends(profile_a, profile_b):
+    return Friend.objects.filter(
+        Q(sender=profile_a, receiver=profile_b) |
+        Q(sender=profile_b, receiver=profile_a)
+    ).exists()
+
+
 # Получение друзей пользователя
 
 class GetUserFriends(mixins.ListModelMixin, viewsets.GenericViewSet):
@@ -44,25 +51,23 @@ class PostFriendRequest(viewsets.ViewSet):
             return Response({'error': "Вы не можете добавить себя"}, status=400)
 
         try:
-            # Получаем пользователя по ID
             to_user = CustomUser.objects.get(id=to_user_id)
-            # Получаем профиль пользователя
             to_user_profile = to_user.profile
         except CustomUser.DoesNotExist:
             return Response({'error': 'Пользователь не найден'}, status=404)
 
-        # Получаем профиль отправителя запроса
         from_user_profile = from_user.profile
 
-        # Проверка на уже отправленный запрос
-        existing = FriendRequest.objects.filter(
+        if are_friends(from_user_profile, to_user_profile):
+            return Response({'error': 'Вы уже друзья'}, status=400)
+
+        already_sent = FriendRequest.objects.filter(
             from_user=from_user_profile, to_user=to_user_profile, status='pending'
         ).exists()
 
-        if existing:
+        if already_sent:
             return Response({'error': 'Запрос на добавление в друзья уже отправлен'}, status=400)
 
-        # Создаем новый запрос
         FriendRequest.objects.create(from_user=from_user_profile, to_user=to_user_profile)
         return Response({'message': 'OK!'}, status=status.HTTP_201_CREATED)
 

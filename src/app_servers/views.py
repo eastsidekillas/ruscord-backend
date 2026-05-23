@@ -1,8 +1,7 @@
-from django.db import models
+from datetime import timedelta
+
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
-from django.conf import settings
-import uuid
 
 from rest_framework import viewsets, status
 from rest_framework.views import APIView
@@ -10,10 +9,10 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
-from ruscord.utils import build_absolute_uri
 from app_auth.base_auth import CookieJWTAuthentication
 from app_channels.serializers import ChannelSerializer
 from app_channels.models import Channel
+from app_users.models import Profile
 
 from .serializers import ServerSerializer, MemberSerializer, InviteLinkSerializer
 from .models import Server, Member, InviteLink
@@ -32,14 +31,10 @@ class ServerViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         profile = self.request.user.profile
         avatar = self.request.FILES.get('avatar')
-        server = serializer.save(owner=profile)
-
         server = serializer.save(owner=profile, avatar=avatar)
 
-        # Добавляем владельца как участника
         Member.objects.create(profile=profile, server=server)
 
-        # Создаем текстовый канал
         text_channel = Channel.objects.create(
             server=server,
             name='general',
@@ -48,8 +43,6 @@ class ServerViewSet(viewsets.ModelViewSet):
             owner=profile,
             is_private=False
         )
-
-        # Создаем голосовой канал
         audio_channel = Channel.objects.create(
             server=server,
             name='Voice Channel',
@@ -59,14 +52,8 @@ class ServerViewSet(viewsets.ModelViewSet):
             is_private=False
         )
 
-        # Добавляем владельца в оба канала
         text_channel.participants.add(profile)
         audio_channel.participants.add(profile)
-
-        return Response({
-            'id': server.id,
-            'default_channel_id': text_channel.id
-        }, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['get'], url_path='channels')
     def get_server_channels(self, request, pk=None):
@@ -129,7 +116,7 @@ class ServerInviteCreateView(APIView):
 
         expires_at = None
         if expires_in_minutes:
-            expires_at = timezone.now() + timezone.timedelta(minutes=int(expires_in_minutes))
+            expires_at = timezone.now() + timedelta(minutes=int(expires_in_minutes))
 
         invite = InviteLink.objects.create(
             server=server,

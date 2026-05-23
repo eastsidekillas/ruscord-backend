@@ -1,9 +1,12 @@
+import uuid
 from django.db import models
 from app_users.models import Profile
 from app_servers.models import Server
 
 
 class Channel(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
     TEXT = 'TEXT'
     AUDIO = 'AUDIO'
 

@@ -1,4 +1,5 @@
 import os
+import uuid
 from django.db import models
 from io import BytesIO
 from PIL import Image
@@ -28,9 +29,10 @@ class CustomUserManager(BaseUserManager):
 
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
-    username = models.CharField(max_length=255, unique=True, verbose_name=('Имя пользователя'))
-    email = models.EmailField(unique=True, verbose_name=('Email'))
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=('Дата регистрации'))
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    username = models.CharField(max_length=255, unique=True, verbose_name='Имя пользователя')
+    email = models.EmailField(unique=True, verbose_name='Email')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата регистрации')
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
@@ -46,6 +48,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
 
 class Profile(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
     STATUS_CHOICES = [
         ('online', 'В сети'),
         ('busy', 'Занят'),

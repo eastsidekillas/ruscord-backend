@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_nested import routers
 from app_auth.views import RegistrationAPIView, LoginAPIView, CheckAuthAPIView
-from .views import UserViewSet, GetUserProfile, GetUserChannels, PostUsersSearch
+from .views import UserViewSet, GetUserProfile, GetUserChannels, PostUsersSearch, MeProfileView
 
 
 router = DefaultRouter()
@@ -12,8 +12,9 @@ users_router = routers.NestedDefaultRouter(router, r'users', lookup='user')
 users_router.register(r'channels', GetUserChannels, basename='user-channels')
 
 urlpatterns = [
+    path('users/me/profile/', MeProfileView.as_view(), name='me-profile'),
     path('users/search/', PostUsersSearch.as_view(), name='user-search'),
-    path("users/<int:user_pk>/profile/", GetUserProfile.as_view(), name="user-profile"),
+    path("users/<uuid:user_pk>/profile/", GetUserProfile.as_view(), name="user-profile"),
     path('', include(router.urls)),
     path('', include(users_router.urls)),
 ]

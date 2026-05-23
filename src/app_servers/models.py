@@ -10,6 +10,7 @@ from app_users.models import Profile
 
 
 class Server(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     avatar = models.ImageField(upload_to='servers/avatars/', null=True, blank=True)
@@ -43,6 +44,7 @@ class Server(models.Model):
 
 
 class Member(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='memberships')
     server = models.ForeignKey(Server, on_delete=models.CASCADE, related_name='members')
     joined_at = models.DateTimeField(auto_now_add=True)
@@ -55,6 +57,7 @@ class Member(models.Model):
 
 
 class InviteLink(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     token = models.CharField(max_length=64, unique=True, default=uuid.uuid4)
     server = models.ForeignKey(Server, on_delete=models.CASCADE, related_name='invite_links')
     creator = models.ForeignKey(Profile, on_delete=models.SET_NULL, null=True)

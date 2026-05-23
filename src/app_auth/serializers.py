@@ -1,15 +1,7 @@
 from rest_framework import serializers
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
-from app_users.models import CustomUser
-from app_users.models import Profile
-
-
-class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    @classmethod
-    def get_token(cls, user):
-        token = super().get_token(user)
-        return token
+from app_users.models import CustomUser, Profile
 
 
 class LoginSerializer(serializers.Serializer):
@@ -35,7 +27,7 @@ class LoginSerializer(serializers.Serializer):
 
     @staticmethod
     def get_tokens_for_user(user):
-        refresh = CustomTokenObtainPairSerializer.get_token(user)
+        refresh = RefreshToken.for_user(user)
         return {
             "access_token": str(refresh.access_token),
             "refresh_token": str(refresh)

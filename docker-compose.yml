@@ -1,8 +1,8 @@
 version: "3.9"
 
 x-common-variables: &common-variables
+  DJANGO_ENV: prod
   DJANGO_SECRET_KEY:
-  DEBUG:
   PUBLIC_HOST:
   DATABASE_ENGINE: django.db.backends.postgresql
   DATABASE_NAME: ruscord

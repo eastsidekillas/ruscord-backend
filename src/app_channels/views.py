@@ -1,5 +1,5 @@
 import json
-from django.db import models
+from django.db.models import Q
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -24,10 +24,9 @@ class ChannelViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         profile = self.request.user.profile
-        # Каналы, где пользователь участник ИЛИ публичные каналы на серверах, где он участник
         return Channel.objects.filter(
-            models.Q(participants=profile) |
-            models.Q(is_private=False, server__members__profile=profile)
+            Q(participants=profile) |
+            Q(is_private=False, server__members__profile=profile)
         ).distinct()
 
     @action(detail=False, methods=["post"], url_path="dm")
@@ -54,8 +53,7 @@ class ChannelViewSet(viewsets.ModelViewSet):
         except Channel.DoesNotExist:
             return Response({"error": "Channel not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        # Проверка членства в канале
-        if not channel.participants.filter(user=user.profile.user).exists():
+        if not channel.participants.filter(user=user).exists():
             return Response({"error": "You are not a participant of this channel"}, status=status.HTTP_403_FORBIDDEN)
 
         room_name = str(channel.id)
