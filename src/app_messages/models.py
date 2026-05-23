@@ -11,6 +11,14 @@ class Messages(models.Model):
     content = models.TextField()
     file_url = models.URLField(null=True, blank=True)
 
+    reply_to = models.ForeignKey(
+        'self', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='replies'
+    )
+    forwarded_from = models.ForeignKey(
+        'self', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='forwards'
+    )
     deleted = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 

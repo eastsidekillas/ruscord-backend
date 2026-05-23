@@ -57,6 +57,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             await self.handle_typing(content)
         elif message_type == 'chat.message':
             await self.handle_chat_message(content)
+        elif message_type in ('call.request', 'call.response', 'call.ended'):
+            await self.handle_call_event(content)
         else:
             logger.debug("Unknown message type: %s", message_type)
 
@@ -79,11 +81,22 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         if not message:
             return
 
+        reply_to_id = event.get('reply_to_id')
+        reply_to_obj = None
+        if reply_to_id:
+            try:
+                reply_to_obj = await database_sync_to_async(
+                    Messages.objects.select_related('sender').get
+                )(id=reply_to_id)
+            except Messages.DoesNotExist:
+                pass
+
         try:
             direct_message = await database_sync_to_async(Messages.objects.create)(
                 channel=self.channel,
                 sender=self.profile,
-                content=message
+                content=message,
+                reply_to=reply_to_obj,
             )
         except Exception as e:
             logger.error("Failed to save message for user %s: %s", self.user.id, e)
@@ -96,6 +109,14 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             scheme = self.scope.get('scheme', 'http')
             avatar_url = build_absolute_uri(self.profile.avatar.url, host, scheme)
 
+        reply_preview = None
+        if reply_to_obj:
+            reply_preview = {
+                'id': str(reply_to_obj.id),
+                'content': reply_to_obj.content[:120],
+                'sender_name': reply_to_obj.sender.name,
+            }
+
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -106,8 +127,28 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 'timestamp': direct_message.created_at.isoformat(),
                 'sender_id': str(self.profile.id),
                 'message_id': str(direct_message.id),
+                'reply_to': reply_preview,
             }
         )
 
     async def chat_message(self, event):
+        await self.send_json(event)
+
+    async def handle_call_event(self, content):
+        event_type = content.get('type')
+        payload = {
+            **content,
+            'type': event_type,
+            'sender_id': str(self.user.id),
+            'sender_name': self.profile.name,
+        }
+        await self.channel_layer.group_send(self.room_group_name, payload)
+
+    async def call_request(self, event):
+        await self.send_json(event)
+
+    async def call_response(self, event):
+        await self.send_json(event)
+
+    async def call_ended(self, event):
         await self.send_json(event)
