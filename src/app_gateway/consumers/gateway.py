@@ -71,6 +71,8 @@ class GatewayConsumer(AsyncJsonWebsocketConsumer):
                     "all_users",
                     {"type": "user_status_update", "userId": self.user_id, "status": new_status}
                 )
+        elif op in ("call.request", "call.response", "call.ended"):
+            await self.handle_call_relay(content)
 
     async def user_status_update(self, event):
         await self.send_json({
@@ -78,6 +80,21 @@ class GatewayConsumer(AsyncJsonWebsocketConsumer):
             "userId": event["userId"],
             "status": event["status"]
         })
+
+    async def handle_call_relay(self, content):
+        to_user_id = str(content.get("to_user_id", ""))
+        if not to_user_id:
+            return
+        payload = {**content, "sender_id": self.user_id}
+        target_channel = await redis_client.get(f"user:{to_user_id}:channel")
+        if target_channel:
+            await self.channel_layer.send(
+                target_channel.decode(),
+                {"type": "call_relay", **payload},
+            )
+
+    async def call_relay(self, event):
+        await self.send_json({k: v for k, v in event.items() if k != "type"})
 
     async def register_session(self):
         await redis_client.set(f"user:{self.user_id}:channel", self.channel_name)
