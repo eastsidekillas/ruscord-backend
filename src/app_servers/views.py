@@ -7,6 +7,7 @@ from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from app_auth.base_auth import CookieJWTAuthentication
@@ -161,7 +162,8 @@ class ServerInviteJoinView(APIView):
 
 
 class ServerInviteDetailsView(APIView):
-    authentication_classes = [CookieJWTAuthentication]
+    authentication_classes = []
+    permission_classes = [AllowAny]
 
     def get(self, request, token=None):
         invite = get_object_or_404(InviteLink, token=token)
@@ -173,10 +175,19 @@ class ServerInviteDetailsView(APIView):
 
         server_avatar = server.avatar.url if server.avatar else None
         if server_avatar:
-            # Для формирования абсолютного URL используем build_absolute_uri
             avatar_url = request.build_absolute_uri(server_avatar)
         else:
             avatar_url = None
+
+        member_count = server.members.count()
+        online_count = server.members.filter(profile__status='online').count()
+
+        creator_name = None
+        creator_avatar = None
+        if invite.creator:
+            creator_name = invite.creator.name
+            if invite.creator.avatar:
+                creator_avatar = request.build_absolute_uri(invite.creator.avatar.url)
 
         response_data = {
             'server_name': server.name,
@@ -186,6 +197,10 @@ class ServerInviteDetailsView(APIView):
             'expires_at': invite.expires_at,
             'max_uses': invite.max_uses,
             'current_uses': invite.uses,
+            'member_count': member_count,
+            'online_count': online_count,
+            'creator_name': creator_name,
+            'creator_avatar': creator_avatar,
         }
 
         return Response(response_data)

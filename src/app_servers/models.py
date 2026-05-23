@@ -1,5 +1,7 @@
 import uuid
 import os
+import secrets
+import string
 from django.db import models
 from django.utils import timezone
 from datetime import timedelta
@@ -7,6 +9,11 @@ from io import BytesIO
 from PIL import Image
 from django.core.files.base import ContentFile
 from app_users.models import Profile
+
+
+def generate_invite_token():
+    alphabet = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(alphabet) for _ in range(8))
 
 
 class Server(models.Model):
@@ -58,7 +65,7 @@ class Member(models.Model):
 
 class InviteLink(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    token = models.CharField(max_length=64, unique=True, default=uuid.uuid4)
+    token = models.CharField(max_length=64, unique=True, default=generate_invite_token)
     server = models.ForeignKey(Server, on_delete=models.CASCADE, related_name='invite_links')
     creator = models.ForeignKey(Profile, on_delete=models.SET_NULL, null=True)
     max_uses = models.PositiveIntegerField(null=True, blank=True)  # None = unlimited
